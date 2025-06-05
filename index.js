@@ -93,14 +93,19 @@ function gen_id(username) {
 }
 
 //Additional function : load user log as requirement (from, to, and limit)
+// ...existing code...
 function user_log(found_user, from, to, limit) {
   let check_from = false; let check_to = false; let check_limit = false;
-  if (from)  { check_from  = !isNaN(Date.parse(from)); }
-  if (to)    { check_to    = !isNaN(Date.parse(to));   }
+  let fromTime, toTime;
+  if (from)  { 
+    check_from  = !isNaN(Date.parse(from)); 
+    fromTime = new Date(from).setHours(0,0,0,0);
+  }
+  if (to)    { 
+    check_to    = !isNaN(Date.parse(to));   
+    toTime = new Date(to).setHours(23,59,59,999);
+  }
   if (limit) { check_limit = /^[0-9]+$/.test(limit);   }
-  
-  // console.log( {from : from, to : to, limit : limit } );
-  // console.log( {from : check_from, to : check_to, limit : check_limit } );
   
   let _id         = found_user._id;
   let username    = found_user.username;
@@ -111,27 +116,18 @@ function user_log(found_user, from, to, limit) {
   });
   let log_date = []; let log_fin  = [];
 
-  //create log_format as date requirement
-  if (check_from == false && check_to == false) { 
-    log_date = log_format; 
-  }
-  else if (check_from == true && check_to == false) {
-    log_date = log_format.filter((d) => { return Date.parse(d.date) > Date.parse(from); } );
-  }
-  else if (check_from == false && check_to == true) {
-    log_date = log_format.filter((d) => { return Date.parse(d.date) < Date.parse(to); } );
-  }
-  else if (check_from == true && check_to == true) {
-    log_date = log_format.filter((d) => {
-      return Date.parse(d.date) > Date.parse(from) && Date.parse(d.date) < Date.parse(to);
-    });
-  }
+  // Inclusive filtering for from/to in yyyy-mm-dd
+  log_date = log_format.filter((d) => {
+    let logTime = new Date(d.date).getTime();
+    if (check_from && logTime < fromTime) return false;
+    if (check_to && logTime > toTime) return false;
+    return true;
+  });
 
-  if (check_limit == true) { log_fin = log_date.slice(0,limit) }
-  else if (check_limit == false) { log_fin = log_date; }
+  if (check_limit == true) { log_fin = log_date.slice(0,parseInt(limit)) }
+  else { log_fin = log_date; }
   
-  
-  user_data = { _id : _id, username : username, count : count, log : log_fin };
+  user_data = { _id : _id, username : username, count : log_fin.length, log : log_fin };
   return user_data;
 }
 
